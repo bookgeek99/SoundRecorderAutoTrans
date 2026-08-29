@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">录音机自动转文字</string>
+    <string-array name="xposed_scope">
+        <item>com.android.soundrecorder</item>
+    </string-array>
+</resources>

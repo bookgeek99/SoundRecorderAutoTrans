@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+build/
+app/build/
+local.properties
+
+# Logs
+*.log
+build*.log
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# OS
+.DS_Store
+
+# Keystore / signing
+*.jks
+*.keystore
+~/.android/
+
+# Maven / temp
+*.tmp
