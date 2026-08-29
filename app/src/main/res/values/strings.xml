@@ -1,5 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">录音机自动转文字</string>
+
+    <!-- UI strings -->
+    <string name="lang_label">转文字语言: %1$s</string>
+    <string name="storage_granted">存储权限: 已授权</string>
+    <string name="storage_denied">存储权限: 未授权（请点击「授权存储」开启所有文件访问）</string>
+
+    <!-- LSPosed scope -->
     <string-array name="xposed_scope">
         <item>com.android.soundrecorder</item>
     </string-array>

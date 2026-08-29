@@ -48,6 +48,7 @@
 - JDK 17
 - Android SDK：`platforms;android-36`、`build-tools;36.0.0`
 - Gradle 8.1+（本项目使用 AGP 8.1.0）
+- 模块 API：`de.robv.android.xposed:api:82`（compileOnly），`xposedminversion` 声明为 `101`
 
 ### 步骤
 
@@ -64,6 +65,23 @@ gradle assembleRelease
 > `release` 变体默认不混淆（`minifyEnabled false`）。生成的 APK 在 `app/build/outputs/apk/release/`。
 >
 > 注意：产物为 **unsigned**，安装前需自行签名（如用 `apksigner` + debug keystore，或发布构建配置签名）。
+
+### 关于 UI 与依赖
+
+- 使用 **Material Design 3**（`com.google.android.material:material:1.11.0` + AndroidX），需开启 `android.useAndroidX=true`（已配置）。
+- 所有 UI 依赖均为运行时依赖（`implementation`），APK 会包含它们，体积约 9.8MB。
+
+### ARM64（aarch64）环境构建备注
+
+Google 官方的 `aapt2` 仅发布 x86_64 的 Linux 版，在 **arm64 Linux**（如 ARM 服务器 / Apple Silicon 容器）上直接构建会因缺少原生 `aapt2` 而失败（报 `AAPT2 daemon startup failed`）。
+
+如需在 arm64 环境构建，可使用 [lzhiyong/android-sdk-tools](https://github.com/lzhiyong/android-sdk-tools) 提供的 **arm64 版静态构建工具**，并在 `gradle.properties` 中指定原生 `aapt2`：
+
+```properties
+android.aapt2FromMavenOverride=/path/to/arm64/aapt2
+```
+
+（注：该 `aapt2FromMavenOverride` 为本机构建所需，**不应**提交到仓库；`local.properties` 中 `sdk.dir` 同理。本仓库的默认配置适用于标准 x86_64 开发环境。）
 
 ---
 
