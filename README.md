@@ -68,8 +68,9 @@ gradle assembleRelease
 
 ### 关于 UI 与依赖
 
-- 使用 **Material Design 3**（`com.google.android.material:material:1.11.0` + AndroidX），需开启 `android.useAndroidX=true`（已配置）。
-- 所有 UI 依赖均为运行时依赖（`implementation`），APK 会包含它们，体积约 9.8MB。
+- **完全使用系统原生控件**（`android.app.Activity` + `android.widget.*`），**不依赖任何第三方 UI 框架**（无 AndroidX / Material）。
+- 仅有一个编译期 `compileOnly` 依赖：`de.robv.android.xposed:api:82`（不打包进 APK）。
+- APK 体积约 **64KB**（去除 AndroidX/Material 后大幅缩小）。
 
 ### ARM64（aarch64）环境构建备注
 

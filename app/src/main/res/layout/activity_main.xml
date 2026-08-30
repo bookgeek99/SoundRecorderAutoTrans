@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
@@ -25,7 +24,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/app_name"
-                android:textColor="@color/on_primary_container"
+                android:textColor="@color/primary"
                 android:textSize="24sp"
                 android:textStyle="bold" />
 
@@ -35,146 +34,129 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="LSPosed 模块 · 作用域 com.android.soundrecorder"
-                android:textColor="@color/on_primary_container"
-                android:textSize="13sp"
-                android:alpha="0.7" />
+                android:textColor="@color/secondary"
+                android:textSize="13sp" />
         </LinearLayout>
 
         <!-- Stats card -->
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/primary_container"
+            android:orientation="vertical"
+            android:padding="20dp"
+            android:background="@drawable/card_bg_accent"
             android:layout_marginBottom="16dp">
 
-            <LinearLayout
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="运行统计"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_primary_container"
+                android:layout_marginBottom="12dp" />
+
+            <TextView
+                android:id="@+id/tvStats"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="运行统计"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/on_primary_container"
-                    android:layout_marginBottom="12dp" />
-
-                <TextView
-                    android:id="@+id/tvStats"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="14sp"
-                    android:textColor="@color/on_primary_container"
-                    android:lineSpacingExtra="4dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+                android:textSize="14sp"
+                android:textColor="@color/on_primary_container"
+                android:lineSpacingExtra="4dp" />
+        </LinearLayout>
 
         <!-- Settings card -->
-        <com.google.android.material.card.MaterialCardView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="4dp"
-            app:cardBackgroundColor="@color/surface"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@drawable/card_bg"
             android:layout_marginBottom="16dp">
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="设置"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_surface"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp" />
+
+            <Switch
+                android:id="@+id/swEnabled"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="启用自动转文字"
+                android:textSize="14sp"
+                android:textColor="@color/on_surface" />
+
+            <Switch
+                android:id="@+id/swWifi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="仅在 WiFi 下执行"
+                android:textSize="14sp"
+                android:textColor="@color/on_surface" />
+
+            <Switch
+                android:id="@+id/swCharging"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="仅在充电时执行"
+                android:textSize="14sp"
+                android:textColor="@color/on_surface" />
+
+            <Switch
+                android:id="@+id/swToast"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="弹出 Toast 通知"
+                android:textSize="14sp"
+                android:textColor="@color/on_surface" />
+
+            <TextView
+                android:id="@+id/tvLang"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="8dp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:text="转文字语言: zh-CN"
+                android:textColor="@color/on_surface"
+                android:textSize="14sp" />
+
+            <!-- Buttons row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="horizontal"
+                android:paddingTop="8dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <Button
+                    android:id="@+id/btnRefresh"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="设置"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/on_surface"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp" />
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    android:text="刷新统计" />
 
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/swEnabled"
-                    android:layout_width="match_parent"
+                <Button
+                    android:id="@+id/btnGrant"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    android:text="启用自动转文字"
-                    android:textSize="14sp"
-                    android:textColor="@color/on_surface" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/swWifi"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    android:text="仅在 WiFi 下执行"
-                    android:textSize="14sp"
-                    android:textColor="@color/on_surface" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/swCharging"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    android:text="仅在充电时执行"
-                    android:textSize="14sp"
-                    android:textColor="@color/on_surface" />
-
-                <com.google.android.material.materialswitch.MaterialSwitch
-                    android:id="@+id/swToast"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:padding="8dp"
-                    android:text="弹出 Toast 通知"
-                    android:textSize="14sp"
-                    android:textColor="@color/on_surface" />
-
-                <TextView
-                    android:id="@+id/tvLang"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:paddingTop="8dp"
-                    android:paddingStart="16dp"
-                    android:paddingEnd="16dp"
-                    android:text="转文字语言: zh-CN"
-                    android:textColor="@color/on_surface"
-                    android:textSize="14sp" />
-
-                <!-- Buttons row -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingTop="8dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnRefresh"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="8dp"
-                        android:text="刷新统计"
-                        app:cornerRadius="12dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnGrant"
-                        style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="授权存储"
-                        app:cornerRadius="12dp" />
-                </LinearLayout>
+                    android:layout_weight="1"
+                    android:layout_marginStart="8dp"
+                    android:text="授权存储" />
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
         <!-- Storage status -->
         <TextView
@@ -195,5 +177,38 @@
             android:textSize="12sp"
             android:alpha="0.6"
             android:paddingTop="12dp" />
+
+        <!-- About card -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp"
+            android:background="@drawable/card_bg"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="关于"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_surface"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:paddingBottom="8dp" />
+
+            <TextView
+                android:id="@+id/tvAbout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:textColor="@color/on_surface"
+                android:textSize="13sp"
+                android:lineSpacingExtra="4dp"
+                android:text="录音机自动转文字\nLSPosed 模块 · v1.0\n作者: bookgeek99\nGitHub: github.com/bookgeek99/SoundRecorderAutoTrans\n仅供个人学习/逆向研究使用。" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>

@@ -7,30 +7,28 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
+import android.app.Activity;
+import android.widget.Button;
+import android.widget.Switch;
 import android.widget.TextView;
-
-import androidx.appcompat.app.AppCompatActivity;
-
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.materialswitch.MaterialSwitch;
 
 import org.json.JSONObject;
 
 /**
- * Material Design companion app UI: shows live statistics collected by the hook
+ * 原生控件 companion app UI: shows live statistics collected by the hook
  * and exposes a few runtime settings (wifi-only, charging-only, enabled, toast)
  * written to the shared settings file consumed by AutoTransHook.
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     private static final int REQ_STORAGE = 100;
 
     private TextView tvStats;
     private TextView tvStatus;
-    private MaterialSwitch swEnabled;
-    private MaterialSwitch swWifi;
-    private MaterialSwitch swCharging;
-    private MaterialSwitch swToast;
+    private Switch swEnabled;
+    private Switch swWifi;
+    private Switch swCharging;
+    private Switch swToast;
     private TextView tvLang;
 
     @Override
@@ -46,8 +44,18 @@ public class MainActivity extends AppCompatActivity {
         swCharging = findViewById(R.id.swCharging);
         swToast = findViewById(R.id.swToast);
 
-        MaterialButton btnRefresh = findViewById(R.id.btnRefresh);
-        MaterialButton btnGrant = findViewById(R.id.btnGrant);
+        // 动态设置版本号（从 PackageInfo 读取）
+        try {
+            String ver = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            TextView tvAbout = findViewById(R.id.tvAbout);
+            if (tvAbout != null) {
+                tvAbout.setText("录音机自动转文字\nLSPosed 模块 · v" + ver
+                        + "\n作者: bookgeek99\nGitHub: github.com/bookgeek99/SoundRecorderAutoTrans\n仅供个人学习/逆向研究使用。");
+            }
+        } catch (Throwable ignored) { }
+
+        Button btnRefresh = findViewById(R.id.btnRefresh);
+        Button btnGrant = findViewById(R.id.btnGrant);
 
         btnRefresh.setOnClickListener(v -> refreshUi());
         btnGrant.setOnClickListener(v -> requestStorage());
