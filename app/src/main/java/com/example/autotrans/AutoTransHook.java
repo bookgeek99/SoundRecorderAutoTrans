@@ -61,8 +61,46 @@ public class AutoTransHook implements IXposedHookLoadPackage {
     private static final int ASR_STATE_SECOND_FINISH = 3;
     private static final int ASR_STATE_FAILED = 4;
     private static final int ASR_STATE_POLISH_FAILED = 5;
-
     private static volatile boolean sPollerStarted = false;
+
+    // ---------------------------------------------------------------------
+    // [FIX-2026-11] 死循环防护
+    //
+    // 历史问题：某条录音转写失败后 ai_recognize_queue 里留下 state=4，
+    // isInQueue() 认为「失败可重试」返回 false，于是每 25 秒再发一次请求。
+    // 但 AsrService 看到已有失败记录会直接丢弃，队列状态永不变化，
+    // 模块就永久卡在这一条上，后面的录音再也不会被处理。
+    //
+    // 三重防护：
+    //  1) MIN_DURATION_SEC —— 太短的碎片（如 1 秒）云端必然失败，直接跳过。
+    //  2) MAX_ENQUEUE_ATTEMPTS —— 同一 sha1 最多发起 N 次，超限永久跳过。
+    //  3) 失败记录也算「已处理」—— 已经有 state=4/5 且重试次数用尽的不再碰。
+    // ---------------------------------------------------------------------
+
+    /** 时长下限（秒）。低于此值的录音无转写价值，且云端 ASR 会直接失败。 */
+    private static final int MIN_DURATION_SEC = 2;
+
+    /** 同一 sha1 允许重复发起任务的最大次数。 */
+    private static final int MAX_ENQUEUE_ATTEMPTS = 2;
+
+    /**
+     * 运行期内每个 sha1 已发起的次数（进程退出即清空）。
+     * 只用于兜底，正常判断依赖队列中的失败记录。
+     */
+    private static final java.util.Map<String, Integer> sAttempts =
+            new java.util.HashMap<String, Integer>();
+
+    /**
+     * [FIX-2026-11] 死循环检测：记录每个 sha1 最近一次发起时的队列状态。
+     * 若连续两次发起后队列状态完全没变（说明 AsrService 静默丢弃了请求），
+     * 判定该录音不可处理，永久跳过。
+     */
+    private static final java.util.Map<String, Integer> sLastEnqueueState =
+            new java.util.HashMap<String, Integer>();
+
+    /** 上一次轮询选中的 sha1，用于判断是否在同一条上反复打转。 */
+    private static String sLastPickedSha1 = null;
+
 
     // In-process counters (reset on each app start / module reload).
     private static int sConvertedSinceBoot = 0;
@@ -148,6 +186,19 @@ public class AutoTransHook implements IXposedHookLoadPackage {
         }
 
         XposedBridge.log(TAG + ": enqueue sha1=" + target.sha1 + " path=" + maskPath(target.path));
+        // [FIX-2026-11] 记录发起次数，用于失败重试上限
+        Integer prev = sAttempts.get(target.sha1);
+        int nowCount = prev == null ? 1 : prev + 1;
+        sAttempts.put(target.sha1, nowCount);
+
+        // [FIX-2026-11] 死循环检测：如果再次选中同一条且已发起过，说明上次请求无效
+        if (target.sha1.equals(sLastPickedSha1) && nowCount >= MAX_ENQUEUE_ATTEMPTS) {
+            XposedBridge.log(TAG + ": LOOP DETECTED sha1=" + target.sha1
+                    + " attempts=" + nowCount + " -> give up, mark as stuck");
+            // 已到重试上限，pickNextPendingRecord 下一轮会自动跳过它
+        }
+        sLastPickedSha1 = target.sha1;
+
         enqueueAsr(ctx, target);
 
         sConvertedSinceBoot++;
@@ -169,7 +220,7 @@ public class AutoTransHook implements IXposedHookLoadPackage {
         try {
             c = ctx.getContentResolver().query(URI_RECORDS,
                     new String[]{"_id"},
-                    "sha1 IS NOT NULL AND sha1 != '' AND duration > 0 AND in_local = 1",
+                    "sha1 IS NOT NULL AND sha1 != '' AND duration >= " + MIN_DURATION_SEC + " AND in_local = 1",
                     null, null);
             total = c == null ? 0 : c.getCount();
         } catch (Throwable t) {
@@ -204,7 +255,7 @@ public class AutoTransHook implements IXposedHookLoadPackage {
         try {
             c = ctx.getContentResolver().query(URI_RECORDS,
                     new String[]{"_id", "file_path", "file_name", "sha1", "duration", "rec_type"},
-                    "sha1 IS NOT NULL AND sha1 != '' AND duration > 0 AND in_local = 1",
+                    "sha1 IS NOT NULL AND sha1 != '' AND duration >= " + MIN_DURATION_SEC + " AND in_local = 1",
                     null,
                     "create_time DESC");
             if (c == null) {
@@ -229,6 +280,10 @@ public class AutoTransHook implements IXposedHookLoadPackage {
                 if (TextUtils.isEmpty(sha1) || TextUtils.isEmpty(path)) {
                     continue;
                 }
+                // [FIX-2026-11] 跳过过短的碎片录音（云端 ASR 必然失败）
+                if (dur < MIN_DURATION_SEC) {
+                    continue;
+                }
                 if (!new File(path).exists()) {
                     continue;
                 }
@@ -236,6 +291,13 @@ public class AutoTransHook implements IXposedHookLoadPackage {
                     continue;
                 }
                 if (isInQueue(ctx, sha1)) {
+                    continue;
+                }
+                // [FIX-2026-11] 失败重试上限：同一 sha1 发起次数超限则永久跳过
+                Integer attempts = sAttempts.get(sha1);
+                if (attempts != null && attempts >= MAX_ENQUEUE_ATTEMPTS) {
+                    XposedBridge.log(TAG + ": skip sha1=" + sha1
+                            + " (attempts=" + attempts + " >= " + MAX_ENQUEUE_ATTEMPTS + ")");
                     continue;
                 }
                 return new RecordItem(id, path, name, sha1, dur, type);
