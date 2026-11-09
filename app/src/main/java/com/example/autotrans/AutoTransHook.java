@@ -101,6 +101,12 @@ public class AutoTransHook implements IXposedHookLoadPackage {
     /** 上一次轮询选中的 sha1，用于判断是否在同一条上反复打转。 */
     private static String sLastPickedSha1 = null;
 
+    /**
+     * [联动-P0] 每轮最多补写多少条 Item。
+     * 限制单轮工作量，避免首次启用时一次性扫描几千条卡住轮询线程。
+     */
+    private static final int ITEM_BACKFILL_PER_ROUND = 20;
+
 
     // In-process counters (reset on each app start / module reload).
     private static int sConvertedSinceBoot = 0;
@@ -149,6 +155,15 @@ public class AutoTransHook implements IXposedHookLoadPackage {
 
     private void doRound(Context ctx) {
         sRunCount++;
+
+        // [联动-P0] 先把「已完成但还没输出 Item」的录音补写成统一 Item。
+        // 放在最前面：这样即使后面因权限/网络提前 return，Item 也能持续产出。
+        try {
+            int n = ItemWriter.backfill(ctx, ITEM_BACKFILL_PER_ROUND);
+            if (n > 0) XposedBridge.log(TAG + ": item backfill wrote " + n);
+        } catch (Throwable t) {
+            XposedBridge.log(TAG + ": item backfill err: " + t);
+        }
 
         if (!hasRequiredPermissions(ctx)) {
             XposedBridge.log(TAG + ": network/CTA permissions not granted, skip");
@@ -244,10 +259,55 @@ public class AutoTransHook implements IXposedHookLoadPackage {
         sLastTotal = total;
         sLastDone = done;
 
+        // ---- [联动] 卡死指标（任务书 3.2 节）----
+        // 这些指标的用途：上次 state=4 死锁时同一条被 enqueue 18+ 次、后面 5444 条
+        // 从不入队，外部却完全看不出问题。有了这些数就能一眼定位。
+        int queueDepth = countQuery(ctx, URI_AI_QUEUE, null, null);
+        int state4Stuck = countQuery(ctx, URI_AI_QUEUE, "state = 4", null);
+        int state5Stuck = countQuery(ctx, URI_AI_QUEUE, "state = 5", null);
+
+        // attemptsOver3：运行期内发起次数 >= 3 的 sha1 个数
+        int attemptsOver3 = 0;
+        synchronized (sAttempts) {
+            for (Integer v : sAttempts.values()) {
+                if (v != null && v >= 3) attemptsOver3++;
+            }
+        }
+
+        int itemsAppendedToday = ItemWriter.countToday();
+        boolean storagePermission = isStorageManager(ctx);
+
         String time = new java.text.SimpleDateFormat("MM-dd HH:mm:ss", java.util.Locale.getDefault())
                 .format(new java.util.Date());
         TransStore.updateStats(total, done, sConvertedSinceBoot, sRunCount,
-                lastName, time, lastState);
+                lastName, time, lastState,
+                queueDepth, state4Stuck, state5Stuck,
+                attemptsOver3, itemsAppendedToday, storagePermission);
+    }
+
+    /** 通用 count 查询，失败返回 0。 */
+    private int countQuery(Context ctx, Uri uri, String where, String[] args) {
+        Cursor c = null;
+        try {
+            c = ctx.getContentResolver().query(uri, new String[]{"_id"}, where, args, null);
+            return c == null ? 0 : c.getCount();
+        } catch (Throwable t) {
+            return 0;
+        } finally {
+            if (c != null) c.close();
+        }
+    }
+
+    /** Environment.isExternalStorageManager()：存储全量权限是否还在。 */
+    private boolean isStorageManager(Context ctx) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 30) {
+                return android.os.Environment.isExternalStorageManager();
+            }
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     private RecordItem pickNextPendingRecord(Context ctx) {

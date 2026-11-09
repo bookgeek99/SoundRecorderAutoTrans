@@ -137,6 +137,28 @@ public final class TransStore {
     /** Called by the module (inside SoundRecorder process) to update stats. */
     public static void updateStats(int total, int done, int sinceBoot, int runCount,
                                    String lastName, String lastTime, String lastState) {
+        updateStats(total, done, sinceBoot, runCount, lastName, lastTime, lastState,
+                0, 0, 0, 0, 0, false);
+    }
+
+    /**
+     * 带卡死指标的重载（任务书 3.2 节）。
+     *
+     * 这些字段是为了让「state=4 死锁」这类静默失败能被外部一眼看见：
+     * 上次就是同一条被 enqueue 18+ 次、后面 5444 条从不入队，但外部完全无感。
+     *
+     * @param queueDepth        ai_recognize_queue 总行数
+     * @param state4Stuck       state=4 且已多次重试（卡死候选）的条数
+     * @param state5Stuck       state=5 同上
+     * @param attemptsOver3     运行期内发起次数 >=3 的 sha1 个数
+     * @param itemsAppendedToday 当天 items 文件里的条目数
+     * @param storagePermission Environment.isExternalStorageManager()
+     */
+    public static void updateStats(int total, int done, int sinceBoot, int runCount,
+                                   String lastName, String lastTime, String lastState,
+                                   int queueDepth, int state4Stuck, int state5Stuck,
+                                   int attemptsOver3, int itemsAppendedToday,
+                                   boolean storagePermission) {
         JSONObject o = new JSONObject();
         try {
             o.put(KEY_TOTAL, total);
@@ -146,8 +168,29 @@ public final class TransStore {
             o.put(KEY_LAST_NAME, lastName == null ? "" : lastName);
             o.put(KEY_LAST_TIME, lastTime == null ? "" : lastTime);
             o.put(KEY_LAST_STATE, lastState == null ? "" : lastState);
+            // [联动] 卡死指标
+            o.put("app", "autotrans");
+            o.put("queueDepth", queueDepth);
+            o.put("state4Stuck", state4Stuck);
+            o.put("state5Stuck", state5Stuck);
+            o.put("attemptsOver3", attemptsOver3);
+            o.put("itemsAppendedToday", itemsAppendedToday);
+            o.put("storagePermission", storagePermission);
+            o.put("lastRunAt", lastTime == null ? "" : lastTime);
+            o.put("updatedAt", isoNow());
         } catch (Throwable ignored) {
         }
         write(statsFile(), o.toString());
+    }
+
+    /** ISO 8601 带时区偏移。 */
+    public static String isoNow() {
+        try {
+            return new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX",
+                    java.util.Locale.US).format(new java.util.Date());
+        } catch (Throwable t) {
+            return new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss",
+                    java.util.Locale.US).format(new java.util.Date());
+        }
     }
 }
